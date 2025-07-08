@@ -4,6 +4,7 @@ import { useQuizCreation } from './hooks/useQuizCreation';
 import { useQuizTaking } from './hooks/useQuizTaking';
 import { useFullscreen } from './hooks/useFullscreen';
 import { generateQuizCode, calculateQuizResults } from './utils/quizUtils';
+import { storeUser, verifyUser, setCurrentUser, logoutUser, getCurrentUser } from './utils/authUtils';
 
 // Import all screen components
 import { HomeScreen } from './screens/HomeScreen';
@@ -12,6 +13,7 @@ import { JoinQuizScreen } from './screens/JoinQuizScreen';
 import { QuizDetailsScreen } from './screens/QuizDetailsScreen';
 import { TakeQuizScreen } from './screens/TakeQuizScreen';
 import { ResultsScreen } from './screens/ResultsScreen';
+import { LoginScreen } from './screens/LoginScreen';
 
 function App() {
   // Main app state using our custom hooks
@@ -23,7 +25,11 @@ function App() {
     currentQuiz,
     setCurrentQuiz,
     quizResults,
-    setQuizResults
+    setQuizResults,
+    currentUser,
+    setCurrentUser,
+    authError,
+    setAuthError
   } = useQuizState();
 
   // Quiz creation state
@@ -56,6 +62,48 @@ function App() {
     exitFullscreen
   } = useFullscreen();
 
+  // ===== AUTHENTICATION FUNCTIONS =====
+  const handleLogin = (username, password) => {
+    try {
+      verifyUser(username, password);
+      setCurrentUser(username);
+      setAuthError(null);
+      setCurrentView('home');
+    } catch (error) {
+      setAuthError(error.message);
+    }
+  };
+
+  const handleRegister = (username, password) => {
+    try {
+      storeUser(username, password);
+      setCurrentUser(username);
+      setAuthError(null);
+      setCurrentView('home');
+    } catch (error) {
+      setAuthError(error.message);
+    }
+  };
+
+  const handleLogout = () => {
+    logoutUser();
+    setCurrentUser(null);
+    setCurrentView('login');
+    resetQuizCreation();
+    resetQuizTaking();
+  };
+
+  // Check for existing session on load
+  React.useEffect(() => {
+    const user = getCurrentUser();
+    if (user) {
+      setCurrentUser(user);
+      setCurrentView('home');
+    } else {
+      setCurrentView('login');
+    }
+  }, []);
+
   // ===== NAVIGATION FUNCTIONS =====
   const goToHome = () => {
     setCurrentView('home');
@@ -78,8 +126,11 @@ function App() {
     setCurrentView('quizDetails');
   };
 
-  const goToTakeQuiz = (quiz, participantName) => {
-    setCurrentQuiz({ ...quiz, participantName });
+  const goToTakeQuiz = (quiz) => {
+    setCurrentQuiz({ 
+      ...quiz, 
+      participantName: currentUser // Auto-use logged-in username
+    });
     setCurrentView('takeQuiz');
     setQuizStartTime(Date.now());
     resetQuizTaking();
@@ -97,11 +148,11 @@ function App() {
         ...prev,
         questions: [...prev.questions, { ...currentQuestion }]
       }));
-    // Reset to default for next question
+      // Reset to default for next question
       setCurrentQuestion({
         type: 'mcq',
         question: '',
-       options: ['', '', '', ''],
+        options: ['', '', '', ''],
         correctAnswer: 0,
         excelInitialData: [[{ value: '' }]]
       });
@@ -114,7 +165,8 @@ function App() {
         ...newQuiz,
         code: generateQuizCode(),
         createdAt: new Date().toISOString(),
-        id: Date.now() // Simple ID generation
+        id: Date.now(),
+        createdBy: currentUser
       };
       
       setQuizzes(prev => [...prev, quizWithCode]);
@@ -132,7 +184,6 @@ function App() {
         typeof currentQuestion.correctAnswer === 'number'
       );
     } else if (currentQuestion.type === 'excel') {
-      // Only require a question prompt, not all cells filled
       return currentQuestion.question.trim();
     }
     return false;
@@ -173,7 +224,6 @@ function App() {
     
     goToResults(results);
     
-    // Exit fullscreen if it was required
     if (currentQuiz.isFullscreen && isFullscreen) {
       exitFullscreen();
     }
@@ -184,7 +234,6 @@ function App() {
     if (currentQuiz?.isFullscreen && currentView === 'takeQuiz') {
       setFullscreenWarnings(prev => prev + 1);
       
-      // Force submit after 3 warnings
       if (fullscreenWarnings >= 2) {
         alert('Too many fullscreen violations. Quiz will be submitted automatically.');
         handleSubmitQuiz(true);
@@ -193,14 +242,12 @@ function App() {
       
       alert(`Warning: You exited fullscreen mode. This is violation ${fullscreenWarnings + 1}/3.`);
       
-      // Try to re-enter fullscreen
       setTimeout(() => {
         enterFullscreen();
       }, 1000);
     }
   };
 
-  // Monitor fullscreen changes
   React.useEffect(() => {
     if (!isFullscreen && currentView === 'takeQuiz' && currentQuiz?.isFullscreen) {
       handleFullscreenExit();
@@ -210,18 +257,27 @@ function App() {
   // ===== DELETE QUIZ FUNCTION =====
   const handleDeleteQuiz = (quizId) => {
     setQuizzes(prev => prev.filter(q => q.id !== quizId));
-    setQuizResults(prev => prev.filter(r => r.id !== quizId));
+    setQuizResults(prev => prev.filter(r => r.quizId !== quizId));
   };
 
-  // ===== RENDER CURRENT SCREEN (object map, no switch) =====
+  // ===== RENDER CURRENT SCREEN =====
   const screens = {
+    login: (
+      <LoginScreen
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        error={authError}
+      />
+    ),
     home: (
       <HomeScreen
-        quizzes={quizzes}
+        quizzes={quizzes.filter(q => q.createdBy === currentUser)}
         onCreateQuiz={goToCreateQuiz}
         onJoinQuiz={goToJoinQuiz}
         onViewQuizDetails={goToQuizDetails}
         onDeleteQuiz={handleDeleteQuiz}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
     ),
     createQuiz: (
@@ -234,6 +290,8 @@ function App() {
         onCreateQuiz={handleCreateQuiz}
         isQuestionValid={isQuestionValid}
         onBack={goToHome}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
     ),
     joinQuiz: (
@@ -241,14 +299,18 @@ function App() {
         quizzes={quizzes}
         onJoinQuiz={goToTakeQuiz}
         onBack={goToHome}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
     ),
     quizDetails: (
       <QuizDetailsScreen
         quiz={currentQuiz}
         results={quizResults.filter(r => r.quizTitle === currentQuiz?.title)}
-        onStartQuiz={(participantName) => goToTakeQuiz(currentQuiz, participantName)}
+        onStartQuiz={goToTakeQuiz} // Simplified - no need for participantName
         onBack={goToHome}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
     ),
     takeQuiz: (
@@ -271,14 +333,16 @@ function App() {
       <ResultsScreen
         results={quizResults[quizResults.length - 1]}
         onBackToHome={goToHome}
-        onRetakeQuiz={() => goToTakeQuiz(currentQuiz, currentQuiz.participantName)}
+        onRetakeQuiz={() => goToTakeQuiz(currentQuiz)}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
     ),
   };
 
   return (
     <div className="App">
-      {screens[currentView] || screens.home}
+      {screens[currentView] || screens.login}
     </div>
   );
 }

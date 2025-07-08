@@ -5,17 +5,25 @@ import { Card } from '../components/UI/Card';
 import { Button } from '../components/UI/Button';
 import { QuizCard } from '../components/Quiz/QuizCard';
 import { Clock, Users, BarChart3 } from 'lucide-react';
+import { Header } from '../components/Layout/Header';
 
 export const HomeScreen = ({ 
   quizzes, 
   onCreateQuiz, 
   onJoinQuiz, 
   onViewQuizDetails,
-  onDeleteQuiz
+  onDeleteQuiz,
+  currentUser,  // Add this
+  onLogout
 }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-4xl mx-auto">
+        <Header
+          title="Quizzlet"
+          currentUser={currentUser}
+          onLogout={onLogout}
+        />
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-gray-800 mb-4">Quizzlet</h1>
           <p className="text-xl text-gray-600">Create, Share, and Analyze Quizzes</p>

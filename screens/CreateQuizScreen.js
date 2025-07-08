@@ -15,7 +15,9 @@ export const CreateQuizScreen = ({
   onAddQuestion,
   onCreateQuiz,
   isQuestionValid,
-  onBack
+  onBack,
+  currentUser,
+  onLogout
 }) => {
   return (
     <PageContainer>
@@ -23,6 +25,8 @@ export const CreateQuizScreen = ({
         title="Create New Quiz" 
         subtitle="Design your custom quiz with multiple questions"
         onBack={onBack}
+        currentUser={currentUser}
+        onLogout={onLogout}
       />
       <Card>
         <div className="space-y-6">

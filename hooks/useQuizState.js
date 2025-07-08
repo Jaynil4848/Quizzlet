@@ -1,10 +1,13 @@
+// src/hooks/useQuizState.js
 import { useState } from 'react';
 
 export const useQuizState = () => {
-  const [currentView, setCurrentView] = useState('home');
+  const [currentView, setCurrentView] = useState('login'); // Changed from 'home' to 'login'
   const [quizzes, setQuizzes] = useState([]);
   const [currentQuiz, setCurrentQuiz] = useState(null);
   const [quizResults, setQuizResults] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authError, setAuthError] = useState(null);
 
   return {
     currentView,
@@ -14,6 +17,10 @@ export const useQuizState = () => {
     currentQuiz,
     setCurrentQuiz,
     quizResults,
-    setQuizResults
+    setQuizResults,
+    currentUser,
+    setCurrentUser,
+    authError,
+    setAuthError
   };
 };

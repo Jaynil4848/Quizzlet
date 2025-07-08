@@ -5,7 +5,7 @@ import { Card } from '../components/UI/Card';
 import { Input } from '../components/UI/Input';
 import { Button } from '../components/UI/Button';
 
-export function JoinQuizScreen({ quizzes = [], onJoinQuiz, onBack }) {
+export function JoinQuizScreen({ quizzes = [], onJoinQuiz, onBack, currentUser,onLogout }) {
   const [quizCode, setQuizCode] = useState('');
   const [participantName, setParticipantName] = useState('');
   const [error, setError] = useState('');
@@ -31,6 +31,8 @@ export function JoinQuizScreen({ quizzes = [], onJoinQuiz, onBack }) {
         title="Join Quiz" 
         subtitle="Enter the quiz code provided by your instructor"
         onBack={onBack}
+        currentUser={currentUser}
+        onLogout={onLogout}
       />
       <Card className="max-w-md mx-auto">
         <div className="space-y-6">

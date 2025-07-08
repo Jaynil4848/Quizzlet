@@ -8,7 +8,8 @@ import { QuestionList } from '../components/Quiz/QuestionList';
 import { calculateQuizStatistics } from '../utils/quizUtils';
 import { Clock, Users, Shield, BarChart3 } from 'lucide-react';
 
-export const QuizDetailsScreen = ({ quiz, results, onStartQuiz, onBack }) => {
+export const QuizDetailsScreen = ({ quiz, results, onStartQuiz, onBack, currentUser,  // Add this
+  onLogout }) => {
   const [participantName, setParticipantName] = useState('');
   const [showQuestions, setShowQuestions] = useState(false);
   
@@ -20,6 +21,8 @@ export const QuizDetailsScreen = ({ quiz, results, onStartQuiz, onBack }) => {
         title={quiz.title} 
         subtitle={quiz.description}
         onBack={onBack}
+        currentUser={currentUser}
+        onLogout={onLogout}
       />
       
       <div className="grid lg:grid-cols-2 gap-8">
@@ -46,16 +49,8 @@ export const QuizDetailsScreen = ({ quiz, results, onStartQuiz, onBack }) => {
           </div>
           
           <div className="space-y-4">
-            <Input
-              label="Enter Your Name to Start"
-              value={participantName}
-              onChange={(e) => setParticipantName(e.target.value)}
-              placeholder="Your full name..."
-            />
-            
             <Button
-              onClick={() => onStartQuiz(participantName)}
-              disabled={!participantName.trim()}
+              onClick={() => onStartQuiz(quiz)} // Changed to pass quiz directly
               size="lg"
               className="w-full"
             >
